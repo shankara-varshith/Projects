@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Money Is Leaking — Revenue Leakage Detector Blog</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #0f1923;
+    --ink-soft: #3d4f5c;
+    --ink-muted: #7a8f9e;
+    --teal: #0f6b8a;
+    --teal-light: #e1f3f8;
+    --accent: #c84b31;
+    --cream: #faf8f5;
+    --white: #ffffff;
+    --border: #e8e2d9;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    line-height: 1.75;
+    font-size: 17px;
+  }
+
+  /* HEADER */
+  .hero {
+    background: var(--ink);
+    padding: 80px 24px 64px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 60% 40%, #0f6b8a22 0%, transparent 65%),
+                radial-gradient(ellipse at 20% 80%, #c84b3115 0%, transparent 55%);
+  }
+  .hero-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #7ec8e3;
+    border: 1px solid #7ec8e333;
+    padding: 6px 16px;
+    border-radius: 20px;
+    margin-bottom: 28px;
+    position: relative;
+  }
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 6vw, 64px);
+    font-weight: 700;
+    color: #f0f8fc;
+    line-height: 1.15;
+    max-width: 760px;
+    margin: 0 auto 20px;
+    position: relative;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: #7ec8e3;
+  }
+  .hero-sub {
+    font-size: 18px;
+    color: #7a9db0;
+    max-width: 520px;
+    margin: 0 auto 36px;
+    font-weight: 300;
+    position: relative;
+  }
+  .byline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    position: relative;
+  }
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0f6b8a, #1a9bc4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    color: white;
+  }
+  .byline-text { text-align: left; }
+  .byline-name { font-size: 14px; font-weight: 500; color: #d0e8f0; }
+  .byline-meta { font-size: 12px; color: #5a8fa0; }
+
+  /* ARTICLE BODY */
+  article {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 64px 24px 100px;
+  }
+
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 56px 0 20px;
+    line-height: 1.3;
+  }
+  h3 {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--teal);
+    margin: 36px 0 12px;
+    letter-spacing: 0.3px;
+  }
+  p { margin-bottom: 20px; color: var(--ink-soft); }
+  strong { color: var(--ink); font-weight: 500; }
+
+  /* PULL QUOTE */
+  .pull-quote {
+    border-left: 3px solid var(--teal);
+    margin: 40px 0;
+    padding: 20px 28px;
+    background: var(--teal-light);
+    border-radius: 0 8px 8px 0;
+  }
+  .pull-quote p {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-style: italic;
+    color: var(--teal);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  /* STAT CARDS */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin: 36px 0;
+  }
+  .stat-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 20px;
+    text-align: center;
+  }
+  .stat-card .number {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--teal);
+    display: block;
+    line-height: 1.1;
+  }
+  .stat-card .label {
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin-top: 6px;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+  .stat-source {
+    display: block;
+    margin-top: 10px;
+    font-size: 10.5px;
+    color: var(--teal);
+    text-decoration: none;
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+    line-height: 1.4;
+  }
+  .stat-source:hover { text-decoration: underline; }
+
+  /* FLOW DIAGRAM */
+  .flow {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 28px;
+    margin: 40px 0;
+  }
+  .flow-title {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 28px;
+    text-align: center;
+  }
+  .flow-steps {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .flow-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    flex: 1;
+    min-width: 110px;
+  }
+  .flow-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: var(--teal-light);
+    border: 1.5px solid #b8dfe9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    margin-bottom: 10px;
+  }
+  .flow-step-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.35;
+  }
+  .flow-step-sub {
+    font-size: 11px;
+    color: var(--ink-muted);
+    margin-top: 3px;
+  }
+  .flow-arrow {
+    font-size: 18px;
+    color: #b8dfe9;
+    padding: 0 4px;
+    flex-shrink: 0;
+    margin-bottom: 28px;
+  }
+
+  /* WHO BENEFITS */
+  .benefit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin: 36px 0;
+  }
+  .benefit-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 20px;
+  }
+  .benefit-card .icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .benefit-card h4 {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .benefit-card p {
+    font-size: 13.5px;
+    color: var(--ink-muted);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  /* LEAKAGE TYPES */
+  .leakage-list {
+    list-style: none;
+    margin: 24px 0 32px;
+  }
+  .leakage-list li {
+    display: flex;
+    gap: 14px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+  .leakage-list li:last-child { border-bottom: none; }
+  .leakage-num {
+    width: 28px;
+    height: 28px;
+    background: var(--ink);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .leakage-list li div strong { display: block; margin-bottom: 3px; }
+  .leakage-list li div span { font-size: 14px; color: var(--ink-muted); }
+
+  /* HIGHLIGHT BOX */
+  .highlight {
+    background: var(--ink);
+    color: #e0f0f7;
+    border-radius: 16px;
+    padding: 36px 32px;
+    margin: 48px 0;
+  }
+  .highlight h3 { color: #7ec8e3; margin-top: 0; }
+  .highlight p { color: #a8c8d8; margin-bottom: 14px; }
+  .highlight p:last-child { margin-bottom: 0; }
+  .highlight strong { color: #d0e8f0; }
+
+  /* FINTECH ANGLE */
+  .fintech-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 28px 0;
+    font-size: 14.5px;
+  }
+  .fintech-table th {
+    background: var(--ink);
+    color: #7ec8e3;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+  }
+  .fintech-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--ink-soft);
+    vertical-align: top;
+  }
+  .fintech-table tr:nth-child(even) td { background: var(--teal-light); }
+
+  /* CTA */
+  .cta {
+    text-align: center;
+    padding: 56px 32px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    margin-top: 64px;
+  }
+  .cta h2 { margin-top: 0; font-size: 26px; }
+  .cta p { max-width: 440px; margin: 0 auto 28px; }
+  .cta-btn {
+    display: inline-block;
+    background: var(--teal);
+    color: white;
+    padding: 14px 32px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+    margin-right: 12px;
+  }
+  .cta-btn.ghost {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--ink-soft);
+    margin-right: 0;
+  }
+
+  /* DIVIDER */
+  .divider {
+    width: 48px;
+    height: 2px;
+    background: var(--teal);
+    margin: 48px 0 0;
+  }
+
+  .accent-text { color: var(--accent); }
+  .teal-text { color: var(--teal); }
+
+  /* APP SHOWCASE */
+  .app-showcase {
+    margin: 48px 0;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--white);
+  }
+  .app-showcase-inner { padding: 0; }
+  .app-screenshot-frame {
+    background: #0a0a1a;
+    border-radius: 0;
+    overflow: hidden;
+  }
+  .app-bar {
+    background: #111125;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #1e1e35;
+  }
+  .app-bar-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #2a2a45;
+  }
+  .app-bar-url {
+    font-size: 11px;
+    color: #4a5568;
+    margin-left: 8px;
+    font-family: monospace;
+  }
+  .app-body {
+    padding: 40px 32px 32px;
+    text-align: center;
+  }
+  .app-tag {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #a78bfa;
+    border: 1px solid #a78bfa44;
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    font-weight: 500;
+  }
+  .app-headline {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(24px, 4vw, 40px);
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 14px;
+    line-height: 1.2;
+  }
+  .app-money { color: #a78bfa; font-style: italic; }
+  .app-desc {
+    font-size: 14px;
+    color: #8899aa;
+    max-width: 480px;
+    margin: 0 auto 28px;
+    line-height: 1.6;
+  }
+  .app-upload-box {
+    background: #0f0f22;
+    border: 1.5px dashed #2a2a55;
+    border-radius: 14px;
+    padding: 32px 24px;
+    max-width: 520px;
+    margin: 0 auto 16px;
+  }
+  .app-upload-icon { font-size: 36px; margin-bottom: 12px; }
+  .app-upload-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e0e0f0;
+    margin-bottom: 6px;
+  }
+  .app-upload-sub { font-size: 12px; color: #4a5568; margin-bottom: 20px; }
+  .app-btns {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .app-btn-primary {
+    background: #7c3aed;
+    color: white;
+    padding: 10px 28px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .app-btn-secondary {
+    background: #1a1a35;
+    color: #a0a0c0;
+    border: 1px solid #2a2a45;
+    padding: 10px 28px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .app-formats { font-size: 11px; color: #3a4a5a; }
+  .app-security {
+    font-size: 11px;
+    color: #22c55e;
+    background: #0a1f0f;
+    border: 1px solid #166534;
+    border-radius: 6px;
+    padding: 8px 16px;
+    max-width: 520px;
+    margin: 0 auto 20px;
+    font-family: monospace;
+  }
+  .app-tags-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    padding-bottom: 8px;
+  }
+  .app-chip {
+    background: #111125;
+    border: 1px solid #1e1e3a;
+    color: #8899bb;
+    font-size: 11.5px;
+    padding: 6px 14px;
+    border-radius: 20px;
+  }
+  .app-cta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 24px 28px;
+    background: var(--teal-light);
+    border-top: 1px solid #b8dfe9;
+    flex-wrap: wrap;
+  }
+  .app-cta-text {
+    font-size: 14px;
+    color: var(--ink-soft);
+    max-width: 340px;
+    line-height: 1.55;
+  }
+  .app-cta-text strong { color: var(--ink); }
+  .app-cta-btns { display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
+  .app-cta-primary {
+    display: inline-block;
+    background: var(--teal);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .app-cta-tags {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--ink-muted);
+  }
+  @media (max-width: 600px) {
+    .app-cta-row { flex-direction: column; align-items: flex-start; }
+    .app-cta-btns { align-items: flex-start; }
+  }
+
+  @media (max-width: 600px) {
+    .flow-steps { flex-direction: column; }
+    .flow-arrow { transform: rotate(90deg); margin: 4px 0; }
+    .fintech-table { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-tag">FinTech · AI · Product</div>
+  <h1>Your money is leaking. <em>You just can't see it.</em></h1>
+  <p class="hero-sub">How I built an AI tool that finds what your bank statement is hiding — and why every FinTech should care.</p>
+  <div class="byline">
+    <div class="avatar">SV</div>
+    <div class="byline-text">
+      <div class="byline-name">Shankara Varshith S</div>
+      <div class="byline-meta">AI Product Manager · 8 min read</div>
+    </div>
+  </div>
+</header>
+
+<article>
+
+  <p>The FinTech industry has spent billions making it easier to spend money. Almost nothing on helping people understand where it's going.</p>
+
+  <p>We have real-time payments, instant settlements, AI-powered fraud detection — but ask most people what their top three recurring expenses are, and they'll guess wrong.</p>
+
+  <p>The data to answer that question exists. It's sitting in your bank statement right now. It just needs the right lens to read it.</p>
+
+  <p>That's what I built.</p>
+
+  <div class="pull-quote">
+    <p>"Revenue leakage isn't a FinTech problem. It's a visibility problem. The data is already there — it just needs the right lens to read it."</p>
+  </div>
+
+  <!-- APP SHOWCASE -->
+  <div class="app-showcase">
+    <div class="app-showcase-inner">
+      <img
+        src="https://revenue-leakage-detector.vercel.app/og-image.png"
+        onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+        alt="Revenue Leakage Detector app screenshot"
+        style="display:none;"
+      />
+      <!-- Embedded screenshot as base64 fallback rendered via CSS -->
+      <div class="app-screenshot-frame">
+        <div class="app-bar">
+          <div class="app-bar-dot"></div>
+          <div class="app-bar-dot"></div>
+          <div class="app-bar-dot"></div>
+          <span class="app-bar-url">revenue-leakage-detector.vercel.app</span>
+        </div>
+        <div class="app-body">
+          <div class="app-tag">⚡ AI FINANCIAL ANALYSIS</div>
+          <div class="app-headline">Stop losing <span class="app-money">money</span> silently.</div>
+          <div class="app-desc">Upload your bank statement or POS data. Our AI identifies your top revenue leakage patterns with precise recovery estimates.</div>
+          <div class="app-upload-box">
+            <div class="app-upload-icon">📁</div>
+            <div class="app-upload-label">Drop your statement here</div>
+            <div class="app-upload-sub">Drag & drop or click to browse</div>
+            <div class="app-btns">
+              <div class="app-btn-primary">Choose File</div>
+              <div class="app-btn-secondary">Try Sample</div>
+            </div>
+            <div class="app-formats">CSV &nbsp;·&nbsp; XLSX &nbsp;·&nbsp; XLS &nbsp;·&nbsp; Max 2MB</div>
+          </div>
+          <div class="app-security">🟢 AES-256 · End-to-End Encrypted · No Storage 🔒</div>
+          <div class="app-tags-row">
+            <span class="app-chip">🔍 Failed transaction patterns</span>
+            <span class="app-chip">✂️ Fee optimisation gaps</span>
+            <span class="app-chip">⏱ Settlement delay leakage</span>
+            <span class="app-chip">📊 Exact recovery potential</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="app-cta-row">
+      <div class="app-cta-text">
+        <strong>Try it free — no account needed.</strong>
+        Works for individuals and businesses. Upload your statement and get your leakage report in under 60 seconds.
+      </div>
+      <div class="app-cta-btns">
+        <a href="https://revenue-leakage-detector.vercel.app/" class="app-cta-primary" target="_blank">Get my financial insights →</a>
+        <div class="app-cta-tags">
+          <span>👤 Individual</span>
+          <span>🏪 Business / Merchant</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>The problem nobody talks about</h2>
+
+  <p>We obsess over earning more. We track income, chase growth, celebrate revenue milestones. But very few of us — individuals or businesses — actively track where money is quietly leaking out.</p>
+
+  <p>The data shows the scale of this blind spot:</p>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <span class="number">$5.7T</span>
+      <span class="label">Global MSME finance gap — driven largely by poor financial visibility and reconciliation gaps</span>
+      <a class="stat-source" href="https://www.smefinanceforum.org/data-sites/msme-finance-gap" target="_blank">IFC–World Bank MSME Finance Gap Report, 2025 ↗</a>
+    </div>
+    <div class="stat-card">
+      <span class="number">42%</span>
+      <span class="label">of consumers have at least one forgotten subscription silently charging them every month</span>
+      <a class="stat-source" href="https://recurstop.com/blog/subscription-spending-statistics-2026" target="_blank">RecurStop, citing Deloitte Digital Media Trends ↗</a>
+    </div>
+    <div class="stat-card">
+      <span class="number">₹3,000+</span>
+      <span class="label">lost annually per Indian to forgotten or unused subscriptions and recurring charges</span>
+      <a class="stat-source" href="https://cancelmates.com/guides/indian-subscription-spending-report-2025" target="_blank">CancelMates Indian Subscription Report, 2025 ↗</a>
+    </div>
+  </div>
+
+  <p>The frustrating part? <strong>The evidence is sitting right there in your bank statement.</strong> Every duplicate charge, every failed retry, every forgotten subscription — it's all in the data. It just takes hours of manual work to find, or the right AI to surface it in seconds.</p>
+
+  <h2>What the tool actually does</h2>
+
+  <p>The concept is simple: upload your bank statement, and within 60 seconds, get a plain-English report of exactly where your money is leaking — ranked by annual impact, with evidence pulled from your actual transactions, and a step-by-step recovery plan.</p>
+
+  <div class="flow">
+    <div class="flow-title">How it works — end to end</div>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="flow-icon">📄</div>
+        <div class="flow-step-label">Upload statement</div>
+        <div class="flow-step-sub">CSV, XLSX, XLS</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-icon">⚙️</div>
+        <div class="flow-step-label">Browser parses</div>
+        <div class="flow-step-sub">Never leaves your device</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-icon">🧠</div>
+        <div class="flow-step-label">AI analyses</div>
+        <div class="flow-step-sub">500 rows, 30 seconds</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-icon">📊</div>
+        <div class="flow-step-label">Report ready</div>
+        <div class="flow-step-sub">Ranked by ₹ impact</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-icon">✅</div>
+        <div class="flow-step-label">Take action</div>
+        <div class="flow-step-sub">Step-by-step fixes</div>
+      </div>
+    </div>
+  </div>
+
+  <p>No dashboards to set up. No accounts to create. No consultants to hire. Just your statement, and answers.</p>
+
+  <h2>The three leakage patterns that show up everywhere</h2>
+
+  <p>After analysing hundreds of transactions across different profiles, the same patterns keep surfacing:</p>
+
+  <ul class="leakage-list">
+    <li>
+      <div class="leakage-num">1</div>
+      <div>
+        <strong>Duplicate and ghost charges</strong>
+        <span>Subscriptions billed twice, platforms charging after cancellation, recurring fees for services never used. These are small individually — ₹200 here, ₹500 there — but they compound to significant annual losses that nobody catches because each charge is too small to notice.</span>
+      </div>
+    </li>
+    <li>
+      <div class="leakage-num">2</div>
+      <div>
+        <strong>Failed transaction retries</strong>
+        <span>A payment fails. The user retries. The merchant charges a fee. The original also processes later. For businesses processing hundreds of transactions daily, this is a structural drain — not a one-off. Our analysis at FairMoney showed this alone was costing merchants millions monthly.</span>
+      </div>
+    </li>
+    <li>
+      <div class="leakage-num">3</div>
+      <div>
+        <strong>Uncategorised small-value spend</strong>
+        <span>Dozens of sub-₹500 UPI transactions to unnamed merchants. Individually harmless. Collectively, they often represent the largest leakage category — particularly for MSMEs who pay for micro-tools, delivery fees, and ad-hoc services without ever tracking them.</span>
+      </div>
+    </li>
+  </ul>
+
+  <h2>Who benefits — and how</h2>
+
+  <div class="benefit-grid">
+    <div class="benefit-card">
+      <span class="icon">👤</span>
+      <h4>Individuals</h4>
+      <p>Find forgotten subscriptions, duplicate UPI charges, and patterns in discretionary spending. Know exactly what to cancel this week to recover money.</p>
+    </div>
+    <div class="benefit-card">
+      <span class="icon">🏪</span>
+      <h4>Small Businesses & MSMEs</h4>
+      <p>Detect failed transaction losses, fee structure inefficiencies, and settlement timing gaps. Turn guesswork into a recovery plan with rupee estimates.</p>
+    </div>
+    <div class="benefit-card">
+      <span class="icon">🏦</span>
+      <h4>FinTechs & Banks</h4>
+      <p>The most underexplored use case — and the most powerful. More on this below.</p>
+    </div>
+  </div>
+
+  <h2>The FinTech opportunity nobody is talking about</h2>
+
+  <p>Here's where it gets interesting for the industry.</p>
+
+  <p>Every bank and FinTech already holds this transaction data. They have it for millions of customers. But almost none of them are using it to proactively surface financial insights to those customers — they're using it for risk scoring, fraud detection, and compliance. That's it.</p>
+
+  <p>The opportunity is to flip the model: instead of using transaction data <em>on</em> customers, use it <em>for</em> them.</p>
+
+  <div class="highlight">
+    <h3>How FinTechs can use this intelligence</h3>
+    <p>Transaction pattern analysis isn't just about finding leakage. It's a window into a customer's entire financial behaviour — their pain points, their spending categories, their financial maturity. That's a cross-sell and upsell map.</p>
+    <p><strong>A customer with high failed transaction retries</strong> → offer a transaction retry management feature or a float facility.</p>
+    <p><strong>A merchant with settlement delay patterns</strong> → offer early settlement or a working capital loan. They already have a demonstrated need.</p>
+    <p><strong>An individual with growing uncategorised spend</strong> → offer a budgeting product, a spend management card, or a savings goal feature.</p>
+    <p>The insight is already there. The question is whether the product team acts on it.</p>
+  </div>
+
+  <p>This is what I mean when I say leakage analysis is a distribution strategy, not just a financial tool. The moment you show a customer "you lost ₹28,000 last year to these five patterns" — and then offer them a product that solves it — the conversion writes itself.</p>
+
+  <table class="fintech-table">
+    <thead>
+      <tr>
+        <th>Leakage Pattern Detected</th>
+        <th>Cross-sell / Upsell Opportunity</th>
+        <th>Timing</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Failed transaction retries</td>
+        <td>Smart retry product, float facility</td>
+        <td>Immediate — high intent</td>
+      </tr>
+      <tr>
+        <td>Settlement delays</td>
+        <td>Early settlement, working capital loan</td>
+        <td>Immediate — demonstrated need</td>
+      </tr>
+      <tr>
+        <td>Duplicate subscriptions</td>
+        <td>Subscription management feature</td>
+        <td>Short term — awareness moment</td>
+      </tr>
+      <tr>
+        <td>High uncategorised spend</td>
+        <td>Spend analytics, budgeting product</td>
+        <td>Medium term — habit change</td>
+      </tr>
+      <tr>
+        <td>Large untracked withdrawals</td>
+        <td>Investment / savings product</td>
+        <td>Medium term — trust moment</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>What building this taught me about AI products</h2>
+
+  <p>I built this in five days using vibe coding — no backend team, no designer, no data scientist. Just an idea, a prompt, and a deployment pipeline. But the most important technical decision wasn't the stack. It was the AI prompt.</p>
+
+  <p>Early versions returned findings that sounded authoritative but were useless — minor one-off anomalies dressed up as patterns. The model was being helpful in the wrong way, filling its output slots with whatever it could find rather than what actually mattered.</p>
+
+  <p>The fix was specific: <strong>define what "major" means before asking the model to find it.</strong> A pattern costing less than 1–2% of total transaction volume isn't worth reporting. One-off anomalies are noise, not signal. Evidence must quote specific transaction names, dates, and amounts — not summaries.</p>
+
+  <div class="pull-quote">
+    <p>"In AI products, the prompt is the product. Everything else — the UI, the loading screen, the database — exists to deliver the prompt's output in the most useful way possible."</p>
+  </div>
+
+  <p>This is the lesson I'd carry into any AI PM role: the intelligence layer determines whether the product is useful or just impressive. Getting that right requires domain knowledge, not just engineering skill. You have to know what a good answer looks like before you can prompt for it.</p>
+
+  <h2>Try it yourself</h2>
+
+  <p>The tool is live, free, and takes less than 60 seconds. You can use your own bank statement or try the built-in sample data to see what a real report looks like before uploading anything.</p>
+
+  <p>Your file is parsed entirely in your browser — it never touches a server until the anonymised transaction rows are sent for analysis. No storage, no account required.</p>
+
+  <div class="cta">
+    <h2>Find your leakage</h2>
+    <p>Upload a bank statement and get a ranked, evidence-backed report in under 60 seconds.</p>
+    <a href="https://revenue-leakage-detector.vercel.app/" class="cta-btn">Try the tool →</a>
+    <a href="https://www.linkedin.com/in/shankara-varshith/" class="cta-btn ghost">Connect on LinkedIn</a>
+  </div>
+
+  <div class="divider"></div>
+  <br>
+  <p style="font-size:14px; color: var(--ink-muted);">This is week 2 of a 5-week AI PM build challenge — shipping one production-ready FinTech AI tool every week. Follow along on <a href="https://www.linkedin.com/in/shankara-varshith/" style="color: var(--teal);">LinkedIn</a> for the rest of the series.</p>
+
+</article>
+
+</body>
+</html>
